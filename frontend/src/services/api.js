@@ -47,6 +47,7 @@ const realApi = {
   getAlertasVencimiento: () => http('/alertas/vencimientos'),
   getConfiguracion: () => http('/configuracion'),
   updateConfiguracion: (data) => http('/configuracion', { method: 'PUT', body: data }),
+  chatIA: (mensaje) => http('/ia/chat', { method: 'POST', body: { mensaje } }),
 };
 
 export const api = FUENTE === 'api' ? realApi : dbJsonApi;
