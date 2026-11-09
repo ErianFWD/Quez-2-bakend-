@@ -1,0 +1,28 @@
+import { obtenerConfiguracion } from '../services/configuracion.js';
+import { listarMateriales, obtenerMaterial, crearMaterial, actualizarMaterial, existenciasMaterial, trazabilidadMaterial, calcularExistencias } from '../services/materiales.js';
+import { listarMovimientos, crearMovimiento } from '../services/movimientos.js';
+import { listarOrdenes, crearOrden, recibirOrden, posiblesDuplicados } from '../services/ordenes.js';
+import { alertasReorden, alertasVencimientos } from '../services/alertas.js';
+import { listarBodegas, listarProveedores } from '../services/catalogos.js';
+import { actualizarConfiguracion } from '../services/configuracion.js';
+
+export const salud=async(_req,res)=>res.json({ok:true,servicio:'ecoobra-inventario-api'});
+export const getMateriales=async(_req,res)=>res.json(await listarMateriales(await obtenerConfiguracion()));
+export const getMaterial=async(req,res)=>res.json(await obtenerMaterial(req.params.id,await obtenerConfiguracion()));
+export const postMaterial=async(req,res)=>res.status(201).json(await crearMaterial(req.body,await obtenerConfiguracion()));
+export const putMaterial=async(req,res)=>res.json(await actualizarMaterial(req.params.id,req.body,await obtenerConfiguracion()));
+export const getExistencias=async(req,res)=>res.json(await existenciasMaterial(req.params.id,await obtenerConfiguracion()));
+export const getTrazabilidad=async(req,res)=>res.json(await trazabilidadMaterial(req.params.id,await obtenerConfiguracion()));
+export const getLotes=async(_req,res)=>res.json(await calcularExistencias(await obtenerConfiguracion()));
+export const getMovimientos=async(_req,res)=>res.json(await listarMovimientos());
+export const postMovimiento=async(req,res)=>res.status(201).json(await crearMovimiento(req.body,await obtenerConfiguracion()));
+export const getOrdenes=async(_req,res)=>res.json(await listarOrdenes());
+export const postOrden=async(req,res)=>res.status(201).json(await crearOrden(req.body,await obtenerConfiguracion()));
+export const postRecibirOrden=async(req,res)=>res.json(await recibirOrden(req.params.id,req.body,await obtenerConfiguracion()));
+export const getDuplicados=async(_req,res)=>res.json(await posiblesDuplicados(await obtenerConfiguracion()));
+export const getReorden=async(_req,res)=>res.json(await alertasReorden(await obtenerConfiguracion()));
+export const getVencimientos=async(_req,res)=>res.json(await alertasVencimientos(await obtenerConfiguracion()));
+export const getBodegas=async(_req,res)=>res.json(await listarBodegas());
+export const getProveedores=async(_req,res)=>res.json(await listarProveedores());
+export const getConfiguracion=async(_req,res)=>res.json(await obtenerConfiguracion());
+export const putConfiguracion=async(req,res)=>res.json(await actualizarConfiguracion(req.body));

@@ -1,8 +1,9 @@
-// API simulada (modo demostración).
-// Imita EXACTAMENTE las respuestas que debe dar el back end real (ver API_CONTRACT.md),
-// pero guarda los datos en el localStorage del navegador.
-// Así el frontend se puede probar aunque la API de Node.js todavía no esté lista.
-import { crearDatosSemilla } from './mockData.js';
+// API de desarrollo con db.json.
+// Los datos viven en el archivo db.json y los sirve json-server (un servidor Node).
+// json-server solo guarda y devuelve "tablas"; los cálculos (stock, punto de reorden,
+// vencimientos, duplicados) se hacen aquí, igual que los hará el back end real.
+// Las respuestas tienen la MISMA forma que la API real (ver backend/API_CONTRACT.md),
+// así que al cambiar al back end no hay que tocar ninguna página.
 import {
   calcStockSeguridad,
   calcPuntoReorden,
@@ -14,9 +15,13 @@ import {
   buscarDuplicados,
 } from '../utils/inventario.js';
 
-const CLAVE = 'ecoobra-demo-v1';
-const espera = (ms = 180) => new Promise((r) => setTimeout(r, ms));
+const DB_URL = (import.meta.env.VITE_DBJSON_URL || 'http://localhost:3001').replace(/\/$/, '');
 const copia = (x) => JSON.parse(JSON.stringify(x));
+
+class ApiError extends Error {
+  constructor(mensaje, status = 400) { super(mensaje); this.status = status; }
+}
+
 // Fecha y hora local en formato 'YYYY-MM-DDTHH:mm:ss' (sin pasar a UTC)
 const fechaHoraLocal = () => {
   const f = new Date();
@@ -24,26 +29,31 @@ const fechaHoraLocal = () => {
   return `${f.getFullYear()}-${p(f.getMonth() + 1)}-${p(f.getDate())}T${p(f.getHours())}:${p(f.getMinutes())}:${p(f.getSeconds())}`;
 };
 
-function cargar() {
+// ---------- Comunicación con json-server ----------
+
+async function pedir(ruta, { method = 'GET', body } = {}) {
+  let res;
   try {
-    const guardado = localStorage.getItem(CLAVE);
-    if (guardado) return JSON.parse(guardado);
-  } catch { /* si falla, se usan datos nuevos */ }
-  const db = crearDatosSemilla();
-  guardar(db);
+    res = await fetch(`${DB_URL}${ruta}`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError(`No se pudo conectar con db.json en ${DB_URL}. Ejecute "npm run server" (o "npm start") en la carpeta frontend.`, 503);
+  }
+  if (!res.ok) throw new ApiError(`db.json respondió ${res.status} en ${method} ${ruta}`, res.status);
+  return res.json();
+}
+
+// Copia en memoria de db.json; se vuelve a leer en cada operación
+let db = null;
+async function leer() {
+  db = await pedir('/db');
   return db;
 }
-function guardar(db) {
-  try { localStorage.setItem(CLAVE, JSON.stringify(db)); } catch { /* sin almacenamiento */ }
-}
 
-let db = cargar();
-
-class ApiError extends Error {
-  constructor(mensaje, status = 400) { super(mensaje); this.status = status; }
-}
-
-const siguienteId = (lista) => lista.reduce((max, x) => Math.max(max, x.id), 0) + 1;
+const siguienteId = (lista) => lista.reduce((max, x) => Math.max(max, Number(x.id)), 0) + 1;
 const nombreBodega = (id) => db.bodegas.find((b) => b.id === id)?.nombre ?? null;
 const nombreProveedor = (id) => db.proveedores.find((p) => p.id === id)?.nombre ?? null;
 const buscarMaterial = (id) => {
@@ -73,7 +83,8 @@ function calcularExistencias() {
   for (const [k, cantidad] of mapa) {
     if (cantidad <= 0) continue;
     const [loteId, bodegaId] = k.split('-').map(Number);
-    lista.push(enriquecerLote(db.lotes.find((l) => l.id === loteId), bodegaId, cantidad));
+    const lote = db.lotes.find((l) => l.id === loteId);
+    if (lote) lista.push(enriquecerLote(lote, bodegaId, cantidad));
   }
   return ordenarFEFO(lista);
 }
@@ -183,45 +194,45 @@ function normalizarMaterial(data) {
   };
 }
 
-// ---------- Endpoints simulados ----------
+// ---------- "Endpoints" ----------
 
-export const mockApi = {
-  modo: 'demo',
+export const dbJsonApi = {
+  modo: 'dbjson',
 
   async getMateriales() {
-    await espera();
+    await leer();
     const ex = calcularExistencias();
     return copia(db.materiales.map((m) => materialConStock(m, ex)));
   },
 
   async getMaterial(id) {
-    await espera();
+    await leer();
     return copia(materialConStock(buscarMaterial(id)));
   },
 
   async createMaterial(data) {
-    await espera();
+    await leer();
     validarMaterial(data);
     const nuevo = { id: siguienteId(db.materiales), ...normalizarMaterial(data) };
     if (db.materiales.some((m) => m.codigo === nuevo.codigo)) throw new ApiError('Ya existe un material con ese código', 409);
+    await pedir('/materiales', { method: 'POST', body: nuevo });
     db.materiales.push(nuevo);
-    guardar(db);
     return copia(materialConStock(nuevo));
   },
 
   async updateMaterial(id, data) {
-    await espera();
+    await leer();
     const m = buscarMaterial(id);
     validarMaterial(data);
     const cambios = normalizarMaterial(data);
     if (db.materiales.some((x) => x.codigo === cambios.codigo && x.id !== m.id)) throw new ApiError('Ya existe un material con ese código', 409);
     Object.assign(m, cambios);
-    guardar(db);
+    await pedir(`/materiales/${m.id}`, { method: 'PUT', body: m });
     return copia(materialConStock(m));
   },
 
   async getTrazabilidad(id) {
-    await espera();
+    await leer();
     const m = buscarMaterial(id);
     const ex = calcularExistencias();
     const movimientos = db.movimientos
@@ -236,27 +247,25 @@ export const mockApi = {
   },
 
   async getExistencias(materialId) {
-    await espera(80);
+    await leer();
     return copia(calcularExistencias().filter((e) => e.material_id === Number(materialId)));
   },
 
-  async getBodegas() { await espera(60); return copia(db.bodegas); },
-  async getProveedores() { await espera(60); return copia(db.proveedores); },
+  async getBodegas() { return pedir('/bodegas'); },
+  async getProveedores() { return pedir('/proveedores'); },
 
   async getLotes() {
-    await espera();
+    await leer();
     return copia(calcularExistencias());
   },
 
   async getMovimientos() {
-    await espera();
-    return copia(
-      [...db.movimientos].sort((a, b) => b.fecha.localeCompare(a.fecha)).map(enriquecerMovimiento)
-    );
+    await leer();
+    return copia([...db.movimientos].sort((a, b) => b.fecha.localeCompare(a.fecha)).map(enriquecerMovimiento));
   },
 
   async createMovimiento(data) {
-    await espera();
+    await leer();
     const tipo = data.tipo;
     if (!['entrada', 'salida', 'traslado', 'ajuste'].includes(tipo)) throw new ApiError('Tipo de movimiento inválido');
     const material = buscarMaterial(data.material_id);
@@ -293,6 +302,7 @@ export const mockApi = {
       if (!lote) {
         const oc = db.ordenes.find((o) => o.codigo === nuevo.documento_ref.toUpperCase());
         lote = { id: siguienteId(db.lotes), codigo_lote: codigo, material_id: material.id, fecha_vencimiento: data.fecha_vencimiento, oc_id: oc?.id ?? null };
+        await pedir('/lotes', { method: 'POST', body: lote });
         db.lotes.push(lote);
       }
       nuevo.lote_id = lote.id;
@@ -327,18 +337,18 @@ export const mockApi = {
       }
     }
 
+    await pedir('/movimientos', { method: 'POST', body: nuevo });
     db.movimientos.push(nuevo);
-    guardar(db);
     return copia({ movimiento: enriquecerMovimiento(nuevo), material: materialConStock(material) });
   },
 
   async getOrdenes() {
-    await espera();
+    await leer();
     return copia([...db.ordenes].sort((a, b) => b.fecha.localeCompare(a.fecha)).map(enriquecerOrden));
   },
 
   async createOrden(data) {
-    await espera();
+    await leer();
     const material = buscarMaterial(data.material_id);
     if (!db.proveedores.some((p) => p.id === Number(data.proveedor_id))) throw new ApiError('Seleccione un proveedor');
     if (!(Number(data.cantidad) > 0)) throw new ApiError('La cantidad debe ser mayor que 0');
@@ -359,12 +369,13 @@ export const mockApi = {
     const duplicados = buscarDuplicados([nueva, ...db.ordenes], db.configuracion)
       .filter((p) => p.oc_a.id === nueva.id || p.oc_b.id === nueva.id)
       .map((p) => (p.oc_a.id === nueva.id ? p.oc_b.codigo : p.oc_a.codigo));
+    await pedir('/ordenes', { method: 'POST', body: nueva });
     db.ordenes.push(nueva);
-    guardar(db);
     return copia({ orden: enriquecerOrden(nueva), posibles_duplicados: duplicados });
   },
 
   async recibirOrden(id, data) {
+    await leer();
     const oc = db.ordenes.find((o) => o.id === Number(id));
     if (!oc) throw new ApiError('Orden no encontrada', 404);
     if (oc.estado === 'recibida') throw new ApiError('Esta orden ya fue recibida');
@@ -380,13 +391,12 @@ export const mockApi = {
       documento_ref: oc.codigo,
       observacion: `Recepción de ${oc.codigo}`,
     });
-    oc.estado = 'recibida';
-    guardar(db);
-    return copia({ orden: enriquecerOrden(oc), movimiento: r.movimiento });
+    const actualizada = await pedir(`/ordenes/${oc.id}`, { method: 'PATCH', body: { estado: 'recibida' } });
+    return copia({ orden: enriquecerOrden(actualizada), movimiento: r.movimiento });
   },
 
   async getPosiblesDuplicados() {
-    await espera();
+    await leer();
     return copia(
       buscarDuplicados(db.ordenes, db.configuracion).map((p) => ({
         ...p,
@@ -398,7 +408,7 @@ export const mockApi = {
   },
 
   async getAlertasReorden() {
-    await espera();
+    await leer();
     const ex = calcularExistencias();
     return copia(
       db.materiales
@@ -410,14 +420,13 @@ export const mockApi = {
   },
 
   async getAlertasVencimiento() {
-    await espera();
+    await leer();
     return copia(calcularExistencias().filter((e) => e.estado_vencimiento === 'vencido' || e.estado_vencimiento === 'critico'));
   },
 
-  async getConfiguracion() { await espera(60); return copia(db.configuracion); },
+  async getConfiguracion() { return pedir('/configuracion'); },
 
   async updateConfiguracion(data) {
-    await espera();
     const c = {
       dias_alerta_critica: Number(data.dias_alerta_critica),
       dias_alerta_proxima: Number(data.dias_alerta_proxima),
@@ -429,15 +438,6 @@ export const mockApi = {
       throw new ApiError('Todos los valores deben ser números mayores o iguales a 0');
     }
     if (c.dias_alerta_proxima <= c.dias_alerta_critica) throw new ApiError('Los días de "próximo" deben ser mayores que los de "crítico"');
-    db.configuracion = c;
-    guardar(db);
-    return copia(c);
-  },
-
-  async resetDemo() {
-    await espera();
-    db = crearDatosSemilla();
-    guardar(db);
-    return { ok: true };
+    return pedir('/configuracion', { method: 'PUT', body: c });
   },
 };

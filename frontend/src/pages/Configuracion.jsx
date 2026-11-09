@@ -32,13 +32,6 @@ export default function Configuracion() {
     }
   }
 
-  async function reiniciar() {
-    if (!window.confirm('¿Restaurar los datos de demostración? Se perderán los cambios hechos en el navegador.')) return;
-    await api.resetDemo();
-    avisar('Datos de demostración restaurados');
-    reload();
-  }
-
   return (
     <>
       <PageHeader titulo="Configuración" migas={[{ texto: 'Configuración' }]} subtitulo="Parámetros de las reglas de negocio." />
@@ -77,16 +70,14 @@ export default function Configuracion() {
 
       <section className="panel" style={{ maxWidth: 720 }}>
         <h2>Origen de datos</h2>
-        {API_INFO.modo === 'demo' ? (
-          <>
-            <p className="nota">
-              El frontend está en <strong>modo demostración</strong>: los datos se guardan en el navegador.
-              Para usar el back end, cree un archivo <code>.env</code> con <code>VITE_USE_MOCK=false</code> y <code>VITE_API_URL</code> apuntando a la API.
-            </p>
-            <button className="btn btn-sec" onClick={reiniciar}>Restaurar datos de demostración</button>
-          </>
+        {API_INFO.modo === 'dbjson' ? (
+          <p className="nota">
+            Los datos vienen de <code>db.json</code> servido por json-server en <code>{API_INFO.baseUrl}</code>.
+            Para volver a los datos iniciales ejecute <code>npm run db:reset</code>.
+            Cuando el back end esté listo, cambie en <code>.env</code> a <code>VITE_FUENTE_DATOS=api</code>.
+          </p>
         ) : (
-          <p className="nota">Conectado a la API en <code>{API_INFO.baseUrl}</code>.</p>
+          <p className="nota">Conectado a la API (Node + MySQL) en <code>{API_INFO.baseUrl}</code>.</p>
         )}
       </section>
     </>

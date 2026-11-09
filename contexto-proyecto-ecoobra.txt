@@ -1,0 +1,243 @@
+CONTEXTO DEL PROYECTO — QUÍMICOS ECOOBRA S.A. (Gestión de Inventarios, Quiz #2, caso #062)
+=====================================================================================
+
+Eres el asistente del equipo que va a completar el BACK END, la BASE DE DATOS y la parte de IA de este
+proyecto universitario. El FRONTEND ya está terminado y probado. Lee todo este contexto antes de
+proponer código. Responde en español.
+
+
+1. EL TRABAJO
+-------------
+- Curso: Gestión de Inventarios, trabajo práctico Quiz #2 (UCR). Equipos de 2 a 4 personas.
+- Caso asignado: #062 Químicos EcoObra S.A. — "Control de materiales con fecha de vencimiento".
+  Distribuidora de selladores, adhesivos y químicos de obra.
+- Opción elegida del enunciado: Opción 2 "Control de inventario", adaptada a productos que vencen:
+  cada entrada de mercadería crea un LOTE con su fecha de vencimiento y la OC de donde proviene.
+- Requisito técnico obligatorio: Node.js conectado a una base de datos real. Camino elegido: back end
+  propio (Node + Express + MySQL + Sequelize), con script SQL o migraciones y validación de datos.
+- Requisitos mínimos de la Opción 2 (todos deben funcionar en la API):
+  a) Registro de materiales con stock mínimo, máximo, demanda promedio y tiempo de entrega;
+     el punto de reorden SE CALCULA, no se digita.
+  b) Registro de movimientos (entrada, salida, traslado, ajuste) con fecha, usuario, cantidad,
+     ubicación y documento de origen (OC, vale de salida). El stock actual se obtiene de los movimientos.
+  c) Alerta de reorden cuando el stock cae por debajo del punto de reorden (tabla de alertas, correo,
+     Telegram o Slack).
+  d) Detección de posibles compras duplicadas: mismo proveedor, mismo artículo, cantidad similar y
+     fechas cercanas (la regla debe estar definida y documentada).
+  e) Consulta de trazabilidad: dado un material, historial de movimientos y de qué OC proviene cada entrada.
+- Rúbrica de la parte B (60 pts): funcionalidad 20, base de datos y modelo 12 (normalizado, histórico,
+  trazabilidad, datos semilla útiles), lógica de negocio 12 (reglas claras, configurables y probadas
+  con casos borde), calidad técnica 8 (código ordenado, manejo de errores, credenciales fuera del repo,
+  README reproducible), presentación y demo 8.
+- Puntos extra: dashboard web (ya hecho en el frontend), pruebas automatizadas (Jest/Vitest),
+  aplicar la matriz de aprobación de compras (la OC queda pendiente hasta que la apruebe el rol correcto).
+- Reglas: no subir contraseñas ni cadenas de conexión (usar .env); cada integrante debe poder explicar
+  el código; citar fuentes externas.
+
+
+2. ESTRUCTURA DEL REPOSITORIO
+-----------------------------
+ecoobra-inventario/
+├── README.md
+├── .gitignore                 (node_modules, dist, .env)
+├── frontend/                  TERMINADO — no modificar salvo el archivo .env
+├── backend/                   BASE lista — falta implementar
+│   ├── API_CONTRACT.md        contrato exacto que espera el frontend (LEERLO)
+│   ├── package.json           express, sequelize, mysql2, cors, dotenv (type: module)
+│   ├── .env.example           PORT=3000, DB_HOST, DB_PORT=3306, DB_NAME=ecoobra_inventario, DB_USER, DB_PASSWORD, CORS_ORIGIN=http://localhost:5173
+│   ├── db/README.md           aquí van schema.sql y seed.sql (pendiente)
+│   └── src/
+│       ├── index.js           Express + CORS + JSON + manejo de errores { error } + GET /api/salud; prueba la conexión a MySQL al arrancar
+│       ├── config/database.js instancia de Sequelize (dialect mysql, underscored, freezeTableName, lee .env)
+│       ├── models/index.js    PENDIENTE: modelos y relaciones
+│       ├── routes/index.js    todas las rutas del contrato montadas en /api, hoy responden 501 "Pendiente de implementar"
+│       ├── controllers/       PENDIENTE
+│       └── services/          PENDIENTE (reorden, vencimientos, duplicados)
+└── ia/README.md               PENDIENTE (parte de IA)
+
+Entorno de trabajo: Windows + Visual Studio Code. MySQL Community Server 8.4 en localhost:3306, MySQL Workbench.
+
+
+3. FRONTEND (YA HECHO — solo como referencia)
+---------------------------------------------
+- React 18 + Vite + React Router. Estructura: components → pages → routes → App.jsx → main.jsx → index.html.
+- Mientras no hay back end, los datos salen de frontend/db.json servido por json-server (Node) en el
+  puerto 3001. "npm start" levanta json-server + Vite (http://localhost:5173).
+- frontend/src/services/api.js es el único punto de acceso a datos. Con la variable
+  VITE_FUENTE_DATOS=dbjson usa db.json; con VITE_FUENTE_DATOS=api llama a VITE_API_URL
+  (por defecto http://localhost:3000/api). Para conectar el back end SOLO se cambia frontend/.env.
+- frontend/src/services/dbJsonApi.js ya implementa TODA la lógica de negocio sobre db.json
+  (stock por lote y bodega, reorden, vencimientos, FEFO, duplicados, trazabilidad, validaciones).
+  Es la referencia exacta de cómo debe comportarse cada endpoint del back end: se puede traducir casi
+  línea por línea a controllers/services con Sequelize.
+- frontend/src/utils/inventario.js tiene las fórmulas puras ya probadas con Vitest (10 pruebas):
+  calcStockSeguridad, calcPuntoReorden, estadoStock, cantidadSugerida, diasParaVencer,
+  estadoVencimiento, ordenarFEFO, loteSugeridoFEFO, esPosibleDuplicado, buscarDuplicados.
+  Se pueden copiar tal cual a backend/src/services/.
+- frontend/db.json y frontend/src/services/mockData.js tienen los DATOS SEMILLA (usarlos para seed.sql).
+- Pantallas: Inicio (dashboard), Materiales, Detalle/trazabilidad, Lotes y vencimientos, Movimientos,
+  Órdenes de compra (con recepción y duplicados), Alertas, Configuración.
+- El frontend muestra al usuario el texto del campo "error" que devuelva la API en respuestas 4xx/5xx.
+
+
+4. REGLAS DE NEGOCIO (las debe calcular el back end; nada de esto se digita)
+---------------------------------------------------------------------------
+- stock_seguridad = max(0, (demanda_maxima − demanda_promedio) × tiempo_entrega)
+- punto_reorden   = demanda_promedio × tiempo_entrega + stock_seguridad
+- Existencias por (lote, bodega) = suma de movimientos:
+    entrada  → + en bodega_destino_id
+    salida   → − en bodega_origen_id
+    traslado → − en bodega_origen_id y + en bodega_destino_id
+    ajuste   → cantidad CON SIGNO en bodega_destino_id
+  Solo se listan existencias con cantidad > 0.
+- stock_total = suma de existencias del material
+- stock_vencido = existencias de lotes con fecha_vencimiento < hoy
+- stock_disponible = stock_total − stock_vencido
+- estado del material: "agotado" si disponible ≤ 0; "reordenar" si disponible ≤ PR;
+  "sobrestock" si disponible > stock_maximo; si no "ok".
+- dias_para_vencer = días entre hoy y fecha_vencimiento (negativo si ya venció).
+- estado_vencimiento: "vencido" (< 0), "critico" (≤ dias_alerta_critica, por defecto 30),
+  "proximo" (≤ dias_alerta_proxima, por defecto 90), "vigente".
+- FEFO (First Expired, First Out): toda lista de lotes/existencias va ordenada por fecha_vencimiento ascendente.
+- Posible compra duplicada: dos OC con mismo proveedor_id y material_id, diferencia de cantidad
+  ≤ duplicado_tolerancia_pct % (|a−b| / mayor × 100, por defecto 10) y fechas a ≤ duplicado_dias días
+  (por defecto 3). Devolver diferencia_dias y diferencia_cantidad_pct (1 decimal).
+- Alerta de reorden: materiales con stock_disponible ≤ punto_reorden, con cantidad_sugerida =
+  stock_maximo − stock_disponible, ordenados por urgencia (disponible / PR ascendente).
+- Alerta de vencimiento: existencias con estado "vencido" o "critico".
+- Validaciones obligatorias (responder 400 con { "error": "mensaje" }):
+  · Material: codigo, nombre, categoria, unidad obligatorios; numéricos ≥ 0; stock_maximo > stock_minimo;
+    demanda_maxima ≥ demanda_promedio; tiempo_entrega ≥ 1; codigo único (409). El código se guarda en mayúsculas.
+  · Movimiento: cantidad > 0, usuario y documento_ref obligatorios.
+    Entrada: bodega_destino_id, codigo_lote y fecha_vencimiento obligatorios; no recibir un lote ya vencido;
+    si el lote ya existe para ese material debe tener la misma fecha de vencimiento; si documento_ref
+    coincide con el código de una OC, el lote queda ligado a esa OC (oc_id).
+    Salida/traslado: no se permite con lote vencido; no sacar más de lo que hay en ese lote y bodega;
+    en traslado el destino debe ser distinto del origen.
+    Ajuste: requiere "sentido" (positivo/negativo) y observacion (motivo); no puede dejar el lote en negativo.
+  · OC: proveedor válido, cantidad > 0, precio_unitario > 0, fecha obligatoria; se crea en estado
+    "pendiente" con código consecutivo "OC-####"; responder también los códigos de OC con las que
+    podría estar duplicada.
+  · Recibir OC: no se puede recibir dos veces; crea un movimiento de entrada (documento_tipo "OC",
+    documento_ref = código de la OC) y pasa la OC a "recibida".
+- Configuración editable: dias_alerta_critica, dias_alerta_proxima (> crítica), duplicado_dias,
+  duplicado_tolerancia_pct, usuario_actual.
+
+
+5. MODELO DE DATOS SUGERIDO (MySQL)
+-----------------------------------
+- bodegas(id, nombre, tipo['bodega'|'obra'])
+- proveedores(id, nombre)
+- materiales(id, codigo UNIQUE, nombre, categoria['Selladores'|'Adhesivos'|'Impermeabilizantes'|'Aditivos'],
+  unidad, stock_minimo, stock_maximo, demanda_promedio, demanda_maxima, tiempo_entrega, vida_util_dias)
+- ordenes_compra(id, codigo UNIQUE, fecha DATE, proveedor_id FK, material_id FK, cantidad,
+  precio_unitario, estado['pendiente'|'recibida'], solicitante)   — una línea por OC
+- lotes(id, codigo_lote, material_id FK, fecha_vencimiento DATE, oc_id FK NULL)  — UNIQUE(material_id, codigo_lote)
+- movimientos(id, fecha DATETIME, tipo['entrada'|'salida'|'traslado'|'ajuste'], material_id FK, lote_id FK,
+  bodega_origen_id FK NULL, bodega_destino_id FK NULL, cantidad (con signo en ajustes), usuario,
+  documento_tipo, documento_ref, observacion)
+- configuracion(una sola fila con los parámetros de la sección 4)
+Relaciones: material 1─N lotes, material 1─N ordenes_compra, proveedor 1─N ordenes_compra,
+orden_compra 1─N lotes, lote 1─N movimientos, bodega 1─N movimientos (como origen y como destino).
+El stock NO se guarda en una columna: se calcula (en código o con una vista SQL).
+Los nombres de campos del JSON deben ser exactamente los de API_CONTRACT.md (snake_case).
+
+
+6. ENDPOINTS QUE ESPERA EL FRONTEND (base /api, JSON, CORS para http://localhost:5173)
+-------------------------------------------------------------------------------------
+Errores: código 4xx/5xx con { "error": "mensaje legible" }.
+Fechas de día "YYYY-MM-DD"; fecha-hora "YYYY-MM-DDTHH:mm:ss" (hora local, sin Z).
+
+GET  /materiales                     → Material[]
+GET  /materiales/:id                 → Material
+POST /materiales                     → Material   (body sin SS ni PR)
+PUT  /materiales/:id                 → Material
+GET  /materiales/:id/existencias     → Existencia[] (FEFO)
+GET  /materiales/:id/trazabilidad    → { material, existencias, movimientos (orden cronológico) }
+GET  /lotes                          → Existencia[] de todos los materiales (FEFO)
+GET  /movimientos                    → Movimiento[] (más recientes primero)
+POST /movimientos                    → { movimiento, material }
+GET  /ordenes                        → Orden[] (más recientes primero)
+POST /ordenes                        → { orden, posibles_duplicados: ["OC-2041"] }
+POST /ordenes/:id/recibir            → { orden, movimiento }
+GET  /ordenes/posibles-duplicados    → [{ oc_a: Orden, oc_b: Orden, diferencia_dias, diferencia_cantidad_pct, regla }]
+GET  /alertas/reorden                → Material[] + cantidad_sugerida
+GET  /alertas/vencimientos           → Existencia[] (vencido o critico)
+GET  /bodegas                        → [{ id, nombre, tipo }]
+GET  /proveedores                    → [{ id, nombre }]
+GET  /configuracion                  → Configuracion
+PUT  /configuracion                  → Configuracion
+
+Material = { id, codigo, nombre, categoria, unidad, stock_minimo, stock_maximo, demanda_promedio,
+  demanda_maxima, tiempo_entrega, vida_util_dias, stock_total, stock_vencido, stock_disponible,
+  stock_seguridad, punto_reorden, estado, proximo_vencimiento, lotes_activos }
+
+Existencia = { lote_id, codigo_lote, material_id, material_codigo, material_nombre, unidad, bodega_id,
+  bodega_nombre, cantidad, fecha_vencimiento, dias_para_vencer, estado_vencimiento, oc_id, oc_codigo,
+  proveedor_nombre }
+
+Movimiento = { id, fecha, tipo, material_id, material_codigo, material_nombre, unidad, lote_id,
+  codigo_lote, fecha_vencimiento, bodega_origen_id, bodega_origen, bodega_destino_id, bodega_destino,
+  cantidad, usuario, documento_tipo, documento_ref, observacion, oc_origen, proveedor_nombre }
+
+Orden = { id, codigo, fecha, proveedor_id, proveedor_nombre, material_id, material_codigo,
+  material_nombre, unidad, cantidad, precio_unitario, total, estado, solicitante }
+
+Configuracion = { dias_alerta_critica, dias_alerta_proxima, duplicado_dias, duplicado_tolerancia_pct, usuario_actual }
+
+Bodies de POST /movimientos:
+- entrada:  { tipo, material_id, cantidad, bodega_destino_id, codigo_lote, fecha_vencimiento, usuario, documento_tipo:"OC", documento_ref, observacion }
+- salida:   { tipo, material_id, cantidad, lote_id, bodega_origen_id, usuario, documento_tipo:"Vale de salida", documento_ref, observacion }
+- traslado: { tipo, material_id, cantidad, lote_id, bodega_origen_id, bodega_destino_id, usuario, documento_tipo:"Traslado", documento_ref, observacion }
+- ajuste:   { tipo, material_id, cantidad, lote_id, bodega_origen_id, sentido:"negativo"|"positivo", usuario, documento_tipo:"Acta de ajuste", documento_ref, observacion }
+POST /ordenes: { fecha, proveedor_id, material_id, cantidad, precio_unitario, solicitante }
+POST /ordenes/:id/recibir: { bodega_destino_id, codigo_lote, fecha_vencimiento, usuario }
+(El detalle completo con ejemplos está en backend/API_CONTRACT.md.)
+
+
+7. DATOS SEMILLA (ya existen en frontend/db.json)
+-------------------------------------------------
+- 3 bodegas: Bodega Central Puntarenas, Bodega San José, Obra Residencial Las Palmas.
+- 3 proveedores: QuimiCR S.A., Adhesivos del Pacífico, SellaTec Distribuciones.
+- 8 materiales: SEL-ACR-001 Sellador acrílico 1 gal, ADH-EPO-002 Adhesivo epóxico, SEL-SIL-003 Silicón
+  neutro, IMP-ASF-004 Impermeabilizante asfáltico, ADI-ACE-005 Aditivo acelerante, SEL-PUR-006 Espuma de
+  poliuretano, ADI-DES-007 Desmoldante, ADH-CER-008 Adhesivo para cerámica.
+- 15 OC (OC-2020 a OC-2053), 13 lotes, 24 movimientos.
+- Casos de demo incluidos a propósito: 3 materiales bajo punto de reorden, 1 lote vencido con stock
+  (AC-K-0090), lotes por vencer en ≤ 30 días, un lote vencido dado de baja con ajuste, y dos pares de OC
+  posiblemente duplicadas (OC-2041/OC-2042 y OC-2050/OC-2053).
+- Las fechas de db.json se generaron relativas al día de creación ("npm run db:reset" en frontend las
+  regenera desde hoy). Para seed.sql conviene usar fechas relativas (CURDATE() ± INTERVAL n DAY) para
+  que la demo siempre tenga lotes vencidos y por vencer.
+
+
+8. LO QUE FALTA (tareas de este equipo)
+---------------------------------------
+Back end y base de datos:
+ 1. db/schema.sql (o migraciones de Sequelize) y db/seed.sql con los datos de la sección 7.
+ 2. Modelos de Sequelize y relaciones en src/models/.
+ 3. Implementar cada ruta de src/routes/index.js (hoy 501) con controllers/ y services/,
+    respetando exactamente el contrato de la sección 6.
+ 4. Pasar las fórmulas de frontend/src/utils/inventario.js a src/services/.
+ 5. Validaciones y manejo de errores { error }.
+ 6. Recomendado para la rúbrica: pruebas con Jest o Vitest de los casos borde (lote vencido,
+    salida mayor al stock, duplicados, reorden), README con pasos para correr, .env fuera del repo.
+ 7. Opcional (puntos extra): alerta de reorden por correo/Telegram, matriz de aprobación de OC.
+IA:
+ 8. Carpeta ia/: por ejemplo flujos de n8n exportados en JSON o un agente que consulte la API
+    (/api/alertas/reorden, /api/alertas/vencimientos, /api/ordenes/posibles-duplicados) en lugar de
+    acceder directo a la base.
+
+Para probar la integración: correr el back end en el puerto 3000, en frontend/.env poner
+VITE_FUENTE_DATOS=api y VITE_API_URL=http://localhost:3000/api, y luego "npm run dev" en frontend.
+Si una pantalla falla, comparar la respuesta del endpoint con lo que devuelve la función equivalente
+de frontend/src/services/dbJsonApi.js.
+
+
+9. CÓMO DEBES AYUDAR
+--------------------
+- No cambies el frontend ni el contrato de la API; si algo del contrato parece necesitar cambio,
+  avísalo primero.
+- Usa ES modules (import/export), Express, Sequelize y mysql2; comandos para Windows.
+- Entrega archivos completos (no fragmentos) y explica el código de forma sencilla, porque cada
+  integrante debe poder explicarlo en la presentación.

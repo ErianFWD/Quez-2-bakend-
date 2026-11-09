@@ -1,0 +1,23 @@
+{
+  "name": "ecoobra-inventario-backend",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API de Químicos EcoObra — Inventario, compras y trazabilidad",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/config/database.js && node --check src/models/index.js && node --check src/routes/index.js && node --check src/controllers/index.js && node --check src/services/inventario.js && node --check src/services/materiales.js && node --check src/services/movimientos.js && node --check src/services/ordenes.js && node --check src/services/alertas.js && node --check src/services/configuracion.js && node --check src/services/catalogos.js && node --check src/services/helpers.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "mysql2": "^3.11.4",
+    "sequelize": "^6.37.5"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}
