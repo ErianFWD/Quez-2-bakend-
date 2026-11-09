@@ -51,8 +51,8 @@ export default function Navbar() {
             <form onSubmit={buscar} className="buscador">
               <input placeholder="Buscar material…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
             </form>
-            <span className={`modo-chip ${API_INFO.modo}`} title={API_INFO.modo === 'demo' ? 'Datos guardados en el navegador' : API_INFO.baseUrl}>
-              {API_INFO.modo === 'demo' ? 'Modo demostración' : 'API conectada'}
+            <span className={`modo-chip ${API_INFO.modo}`} title={API_INFO.baseUrl}>
+              {API_INFO.modo === 'dbjson' ? 'Datos: db.json' : 'Datos: API MySQL'}
             </span>
           </div>
         </div>

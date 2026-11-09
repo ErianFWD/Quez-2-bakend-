@@ -1,10 +1,12 @@
 // Punto único de acceso a datos del frontend.
-// Las páginas SOLO llaman a "api.algo()" y no saben si los datos vienen
-// del back end real o del modo demostración.
-import { mockApi } from './mockApi.js';
+// Las páginas SOLO llaman a "api.algo()" y no saben de dónde vienen los datos:
+//   VITE_FUENTE_DATOS=dbjson → db.json servido por json-server (mientras se hace el back end)
+//   VITE_FUENTE_DATOS=api    → back end real (Node + Express + MySQL + Sequelize)
+import { dbJsonApi } from './dbJsonApi.js';
 
-const USAR_DEMO = import.meta.env.VITE_USE_MOCK !== 'false';
+const FUENTE = import.meta.env.VITE_FUENTE_DATOS === 'api' ? 'api' : 'dbjson';
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
+const DBJSON_URL = (import.meta.env.VITE_DBJSON_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 async function http(ruta, { method = 'GET', body } = {}) {
   let res;
@@ -45,8 +47,7 @@ const realApi = {
   getAlertasVencimiento: () => http('/alertas/vencimientos'),
   getConfiguracion: () => http('/configuracion'),
   updateConfiguracion: (data) => http('/configuracion', { method: 'PUT', body: data }),
-  resetDemo: async () => { throw new Error('Reiniciar datos solo está disponible en modo demostración'); },
 };
 
-export const api = USAR_DEMO ? mockApi : realApi;
-export const API_INFO = { modo: USAR_DEMO ? 'demo' : 'api', baseUrl: BASE_URL };
+export const api = FUENTE === 'api' ? realApi : dbJsonApi;
+export const API_INFO = { modo: FUENTE, baseUrl: FUENTE === 'api' ? BASE_URL : DBJSON_URL };

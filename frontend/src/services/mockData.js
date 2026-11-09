@@ -1,4 +1,6 @@
-// Datos semilla de demostración para Químicos EcoObra S.A.
+// Datos semilla de Químicos EcoObra S.A.
+// Los usa scripts/generar-db.js para crear db.json (npm run db:reset).
+// El back end puede reutilizarlos como datos semilla para MySQL.
 // Las fechas se calculan a partir de HOY para que siempre haya lotes
 // vencidos, por vencer y vigentes al hacer la demo.
 import { hoyISO, sumarDias } from '../utils/inventario.js';
