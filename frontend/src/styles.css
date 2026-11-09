@@ -46,7 +46,11 @@ code { background: var(--neutral-bg); padding: 1px 5px; border-radius: 3px; font
 @keyframes aparecer { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* ===== Cabecera ===== */
-.cabecera { position: sticky; top: 0; z-index: 40; }
+/* Fija y fuera del flujo: al compactarse no cambia la altura de la página.
+   Con position: sticky el cambio de altura movía el scroll y la cabecera
+   entraba en un bucle compactar/expandir (temblor). */
+.cabecera { position: fixed; top: 0; left: 0; right: 0; z-index: 40; }
+.app { padding-top: 122px; } /* barra superior (38px) + navegación (84px) */
 .barra-superior { background: var(--verde); color: #fff; font-size: 13px; transition: margin 0.25s; }
 .barra-superior-contenido { display: flex; justify-content: space-between; align-items: center; height: 38px; gap: 12px; }
 .barra-datos { display: flex; align-items: center; gap: 18px; }

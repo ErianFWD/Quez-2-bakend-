@@ -29,8 +29,11 @@ export default function Navbar() {
 
   // El menú se achica al bajar, como en el sitio de referencia
   useEffect(() => {
-    const alBajar = () => setCompacto(window.scrollY > 40);
-    window.addEventListener('scroll', alBajar);
+    // Histéresis: se compacta pasados 60px y solo se expande de nuevo por
+    // debajo de 20px, para que no parpadee alrededor de un único píxel.
+    const alBajar = () => setCompacto((c) => (c ? window.scrollY > 20 : window.scrollY > 60));
+    alBajar();
+    window.addEventListener('scroll', alBajar, { passive: true });
     return () => window.removeEventListener('scroll', alBajar);
   }, []);
 
