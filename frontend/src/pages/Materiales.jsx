@@ -1,8 +1,4 @@
- feat_yubran
 import { useEffect, useMemo, useState } from 'react';
-
-import { useMemo, useState } from 'react';
- main
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api.js';
 import { useApi } from '../hooks/useApi.js';
@@ -29,13 +25,10 @@ export default function Materiales() {
   const [params] = useSearchParams();
   const [busqueda, setBusqueda] = useState(params.get('q') ?? '');
   const [categoria, setCategoria] = useState(params.get('categoria') ?? 'todas');
- feat_yubran
   useEffect(() => {
     setBusqueda(params.get('q') ?? '');
     setCategoria(params.get('categoria') ?? 'todas');
   }, [params]);
-
- main
   const [vista, setVista] = useState('tarjetas');
   const [editando, setEditando] = useState(null); // null = cerrado, {} = nuevo, material = editar
 

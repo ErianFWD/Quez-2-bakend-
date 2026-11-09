@@ -119,22 +119,16 @@ function FormMovimiento({ datos, onCerrar, onGuardado }) {
   // Cada vez que cambia el material, se cargan sus existencias por lote y se sugiere el lote FEFO
   useEffect(() => {
     if (!form.material_id) return;
- feat_yubran
     setExistencias([]);
     setForm((f) => ({ ...f, existencia: '' }));
 
- main
     let vigente = true;
     api.getExistencias(form.material_id).then((ex) => {
       if (!vigente) return;
       setExistencias(ex);
       const sugerido = loteSugeridoFEFO(ex);
       setForm((f) => ({ ...f, existencia: sugerido ? `${sugerido.lote_id}-${sugerido.bodega_id}` : ex[0] ? `${ex[0].lote_id}-${ex[0].bodega_id}` : '' }));
- feat_yubran
     }).catch((err) => { if (vigente) setErrorForm(err.message); });
-
-    });
- main
     return () => { vigente = false; };
   }, [form.material_id]);
 
