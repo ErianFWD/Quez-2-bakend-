@@ -8,7 +8,10 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "check": "node --check src/index.js && node --check src/config/database.js && node --check src/models/index.js && node --check src/routes/index.js && node --check src/controllers/index.js && node --check src/services/inventario.js && node --check src/services/materiales.js && node --check src/services/movimientos.js && node --check src/services/ordenes.js && node --check src/services/alertas.js && node --check src/services/configuracion.js && node --check src/services/catalogos.js && node --check src/services/helpers.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -18,6 +21,7 @@
     "sequelize": "^6.37.5"
   },
   "devDependencies": {
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "sequelize-cli": "^6.6.2"
   }
 }

@@ -78,3 +78,27 @@ GET /api/alertas/vencimientos
 - Trazabilidad por producto.
 
 Las credenciales se mantienen fuera del repositorio mediante `.env`.
+
+## Estructura del backend
+
+```text
+backend/
+├── src/
+│   ├── models/       # modelos Sequelize y relaciones
+│   ├── controllers/  # recepción de solicitudes y respuestas
+│   ├── routes/       # endpoints de la API
+│   ├── services/     # lógica de negocio
+│   ├── migrations/   # migraciones Sequelize CLI
+│   ├── middleware/   # errores, validaciones y procesos intermedios
+│   ├── config/       # configuración de BD y Sequelize CLI
+│   ├── utils/        # funciones y utilidades internas
+│   ├── tests/        # pruebas del backend
+│   └── index.js
+├── db/               # SQL de referencia y datos semilla
+├── API_CONTRACT.md
+├── package.json
+├── .env.example
+└── .sequelizerc
+```
+
+La carpeta `src/migrations` es la vía recomendada para crear la estructura de la base de datos mediante Sequelize CLI. `db/schema.sql` se conserva como referencia SQL reproducible.
