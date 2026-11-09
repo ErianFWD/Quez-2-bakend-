@@ -1,5 +1,6 @@
 {
   "name": "ecoobra-inventario-backend",
+ feat_yubran
   "version": "2.0.0",
   "private": true,
   "type": "module",
@@ -13,6 +14,14 @@
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
     "test:integration": "node scripts/verificar-integracion.js"
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "API de Químicos EcoObra (Node + Express + MySQL + Sequelize) — base para completar",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+ main
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -20,9 +29,12 @@
     "express": "^4.21.1",
     "mysql2": "^3.11.4",
     "sequelize": "^6.37.5"
+ feat_yubran
   },
   "devDependencies": {
     "vitest": "^2.1.8",
     "sequelize-cli": "^6.6.2"
+
+ main
   }
 }
