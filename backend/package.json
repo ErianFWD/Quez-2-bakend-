@@ -1,5 +1,19 @@
 {
   "name": "ecoobra-inventario-backend",
+ feat_yubran
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API de Qu\u00edmicos EcoObra \u2014 Inventario, compras y trazabilidad",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/config/database.js && node --check src/models/index.js && node --check src/routes/index.js && node --check src/controllers/index.js && node --check src/services/inventario.js && node --check src/services/materiales.js && node --check src/services/movimientos.js && node --check src/services/ordenes.js && node --check src/services/alertas.js && node --check src/services/configuracion.js && node --check src/services/catalogos.js && node --check src/services/helpers.js",
+    "test": "vitest run",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
+    "test:integration": "node scripts/verificar-integracion.js"
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +21,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js"
+ main
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -14,5 +29,12 @@
     "express": "^4.21.1",
     "mysql2": "^3.11.4",
     "sequelize": "^6.37.5"
+ feat_yubran
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "sequelize-cli": "^6.6.2"
+
+ main
   }
 }

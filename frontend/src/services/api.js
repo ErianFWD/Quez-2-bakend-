@@ -4,7 +4,11 @@
 //   VITE_FUENTE_DATOS=api    → back end real (Node + Express + MySQL + Sequelize)
 import { dbJsonApi } from './dbJsonApi.js';
 
+ feat_yubran
+const FUENTE = import.meta.env.VITE_FUENTE_DATOS === 'dbjson' ? 'dbjson' : 'api';
+
 const FUENTE = import.meta.env.VITE_FUENTE_DATOS === 'api' ? 'api' : 'dbjson';
+ main
 const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/$/, '');
 const DBJSON_URL = (import.meta.env.VITE_DBJSON_URL || 'http://localhost:3001').replace(/\/$/, '');
 
