@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+  <defs>
+    <linearGradient id="fondo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3a33"/><stop offset="1" stop-color="#151d19"/>
+    </linearGradient>
+    <radialGradient id="luz" cx="0.5" cy="0.35" r="0.45">
+      <stop offset="0" stop-color="#cfe8d6" stop-opacity="0.35"/><stop offset="1" stop-color="#cfe8d6" stop-opacity="0"/>
+    </radialGradient>
+    <g id="galon"><rect x="0" y="12" width="34" height="46" rx="6" fill="#dfe6e2"/><rect x="10" y="2" width="14" height="12" rx="2" fill="#c9d3ce"/><rect x="4" y="28" width="26" height="14" rx="2" fill="#8cc63f" opacity=".75"/></g>
+    <g id="cubeta"><path d="M0 8h40l-4 50H4z" fill="#5a9bd4" opacity=".85"/><rect x="-2" y="4" width="44" height="8" rx="3" fill="#7fb3e0"/></g>
+    <g id="tubo"><rect x="0" y="10" width="14" height="48" rx="4" fill="#e9c46a"/><rect x="4" y="0" width="6" height="12" fill="#c49a3a"/></g>
+    <g id="saco"><path d="M2 14q18-12 40 0v42q-20 6-40 0z" fill="#b9a789"/><rect x="10" y="26" width="24" height="10" fill="#8cc63f" opacity=".7"/></g>
+    <g id="tramo">
+      <use href="#galon" x="10"/><use href="#galon" x="50"/><use href="#cubeta" x="98"/><use href="#tubo" x="150"/><use href="#tubo" x="168"/><use href="#saco" x="194"/><use href="#galon" x="246"/><use href="#cubeta" x="290"/>
+      <rect x="0" y="58" width="340" height="7" fill="#4a5a52"/>
+    </g>
+    <g id="estante">
+      <use href="#tramo" y="0"/><use href="#tramo" y="110"/><use href="#tramo" y="220"/><use href="#tramo" y="330"/><use href="#tramo" y="440"/><use href="#tramo" y="550"/>
+      <rect x="-6" y="-30" width="8" height="700" fill="#3c4a43"/><rect x="336" y="-30" width="8" height="700" fill="#3c4a43"/>
+    </g>
+  </defs>
+  <rect width="1600" height="700" fill="url(#fondo)"/>
+  <g opacity=".55" transform="translate(0 40)"><use href="#estante" x="10"/><use href="#estante" x="360"/></g>
+  <g opacity=".55" transform="translate(890 40)"><use href="#estante" x="0"/><use href="#estante" x="350"/></g>
+  <g opacity=".3" transform="translate(650 160) scale(.5)"><use href="#estante" x="0"/></g>
+  <rect width="1600" height="700" fill="url(#luz)"/>
+</svg>

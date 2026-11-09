@@ -1,87 +1,98 @@
-# Químicos EcoObra S.A. · Frontend de control de inventario
+# EcoObra: frontend, API y MySQL
 
-Caso **#062 · Gestión de Inventarios (Quiz #2)**: control de materiales con fecha de vencimiento
-para una distribuidora de selladores, adhesivos y químicos de obra.
-Corresponde a la **Opción 2 (Control de inventario)** del enunciado, adaptada a productos que vencen:
-cada entrada crea un **lote** con su fecha de vencimiento y la **OC** de donde viene.
+Aplicación de inventario por material, lote y bodega. Esta entrega conecta React con la API Express y MySQL por defecto. `db.json` queda como demostración opcional e independiente.
 
-Este repositorio es **solo el frontend** (React + Vite). Consume la API de Node.js descrita en
-[`API_CONTRACT.md`](./API_CONTRACT.md).
+## Requisitos
 
-## Cómo correrlo
+- Node.js 22 o 24 LTS y npm (verificado con 24.22.1).
+- MySQL 8.0 o 8.4; verificado con MySQL 8.4.
+- MySQL Workbench o cliente MySQL para importar el SQL.
 
-Requisitos: Node.js 18 o superior.
+## 1. Crear la base MySQL
 
-```bash
-npm install
-cp .env.example .env      # en Windows: copy .env.example .env
-npm run dev               # abre http://localhost:5173
+En MySQL Workbench, conectar con tu servidor, abrir `backend/db/ecoobra_mysql.sql` y ejecutar el archivo completo. Crea `ecoobra_inventario`, 14 tablas relacionadas y datos de demostración (8 materiales, 3 bodegas, 3 proveedores, órdenes, lotes y movimientos).
+
+También se puede importar desde el cliente interactivo MySQL, en Windows o Linux:
+
+```text
+mysql -u root -p
 ```
 
-### Modo demostración vs. API real
+Dentro del cliente, usar la ruta real del archivo, con barras `/`:
 
-| `.env` | Qué pasa |
-|---|---|
-| `VITE_USE_MOCK=true` | Usa datos de prueba guardados en el navegador. Sirve para probar y grabar la demo sin back end. |
-| `VITE_USE_MOCK=false` + `VITE_API_URL=http://localhost:3000/api` | Usa la API real de Node.js. |
-
-En modo demostración, **Configuración → Restaurar datos de demostración** vuelve a los datos iniciales.
-Las fechas de los datos de prueba se calculan desde el día de hoy, así siempre hay lotes vencidos,
-por vencer y vigentes para mostrar.
-
-### Pruebas
-
-```bash
-npm test
+```sql
+SOURCE C:/ruta/ecoObra/backend/db/ecoobra_mysql.sql;
+SHOW TABLES FROM ecoobra_inventario;
 ```
 
-Prueban las reglas de negocio de `src/utils/inventario.js`: stock de seguridad, punto de reorden,
-semáforo de vencimiento, sugerencia FEFO y detección de compras duplicadas.
+En Linux, por ejemplo: `SOURCE /ruta/ecoObra/backend/db/ecoobra_mysql.sql;`.
 
-## Pantallas
+El archivo combinado es para una base nueva: los datos de demostración se cargan una sola vez. No elimina tablas existentes; tampoco actualiza esquemas de instalaciones anteriores. Para crear solo la estructura, usar `backend/db/schema.sql`. No combinar la importación SQL con `npm run db:migrate` en la misma base.
 
-| Ruta | Qué muestra | Requisito del enunciado |
-|---|---|---|
-| `/` Panel general | KPIs, materiales a reponer, próximos vencimientos, lotes vencidos, OC duplicadas | Dashboard (puntos extra) |
-| `/materiales` | Materiales con stock disponible, SS y PR **calculados** | Registro de materiales |
-| `/materiales/:id` | Lotes del material e historial con la OC de cada entrada | Consulta de trazabilidad |
-| `/lotes` | Todos los lotes en orden FEFO con semáforo de vencimiento | Control de vencimientos |
-| `/movimientos` | Entradas, salidas, traslados y ajustes con fecha, usuario, lote, ubicación y documento | Registro de movimientos |
-| `/ordenes` | OC, recepción de OC (crea la entrada y el lote) y posibles duplicados | Detección de duplicados |
-| `/alertas` | Tabla de alertas de reorden y de vencimiento | Alerta de reorden |
-| `/configuracion` | Días de alerta y regla de duplicados (configurables) | Reglas configurables |
+## 2. Iniciar el backend
 
-## Diseño
+En una terminal, entrar en la carpeta `backend` de este proyecto. Crear `.env` copiando `.env.example` (Explorador de archivos, `copy .env.example .env` en CMD o `cp .env.example .env` en Linux). Configurar los datos reales de MySQL:
 
-Estilo de sitio corporativo de distribuidora: barra superior verde, menú blanco con subrayado azul en la
-página activa, banners oscuros con título grande, portada con corte en "V", hexágonos por categoría,
-círculos con los números del inventario, tarjetas de materiales tipo "productos destacados" y pie de
-página oscuro. Las ilustraciones (estantes, íconos y logo) son SVG propios en `public/` y
-`src/components/Iconos.jsx`. El botón verde flotante abre el formulario de movimientos.
+```env
+PORT=3000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=ecoobra_inventario
+DB_USER=root
+DB_PASSWORD=tu_contraseña_local
+DB_TIMEZONE=-06:00
+CORS_ORIGIN=http://localhost:5173
+```
 
-## Reglas de negocio
+Ejecutar desde `backend`:
 
-- `SS = (demanda máxima − demanda promedio) × tiempo de entrega`
-- `PR = demanda promedio × tiempo de entrega + SS`
-- El stock se obtiene sumando los movimientos; los lotes vencidos **no** cuentan como disponibles.
-- **FEFO** (First Expired, First Out): al registrar una salida se sugiere el lote que vence primero.
-- No se puede despachar ni trasladar un lote vencido; se da de baja con un **ajuste** con motivo.
-- **Posible compra duplicada:** mismo proveedor y material, cantidad con diferencia de ±10 % como máximo
-  y fechas a 3 días o menos (los valores se cambian en Configuración).
+```text
+npm ci
+npm run dev
+```
+
+Debe mostrar que se conectó a MySQL. Abrir `http://localhost:3000/api/salud`: debe responder `ok: true`.
+
+## 3. Iniciar el frontend
+
+En otra terminal, entrar en `frontend`. Copiar `.env.example` a `.env`, de la misma forma que en el backend. Debe contener:
+
+```env
+VITE_FUENTE_DATOS=api
+VITE_API_URL=http://localhost:3000/api
+```
+
+Ejecutar desde `frontend`:
+
+```text
+npm ci
+npm start
+```
+
+Abrir `http://localhost:5173`. Los cambios se guardan en MySQL mediante el backend. Reiniciar Vite después de cambiar `.env`. Si ya existía un `.env` con `VITE_FUENTE_DATOS=dbjson`, cambiarlo a `api`.
+
+## Verificación
+
+Desde `backend`: `npm run check` y `npm test`.
+Desde `frontend`: `npm test` y `npm run build`.
+Con el backend iniciado y una base de pruebas con los datos de demostración: desde `backend`, ejecutar `npm run test:integration`. Este último crea registros de prueba; no ejecutarlo contra datos de trabajo.
+
+`REVISION.md` describe hallazgos y pruebas realizadas. `backend/scripts/verificar-integracion.js` contiene la comprobación reproducible contra la API.
 
 ## Estructura
 
-```
-src/
-├── components/   piezas reutilizables (Navbar, Footer, PageHeader, MaterialCard, Modal, Badge, StockBar…)
-├── pages/        una página por ruta
-├── routes/       AppRoutes.jsx (React Router)
-├── services/     api.js (API real) · mockApi.js + mockData.js (modo demostración)
-├── hooks/        useApi.js (carga, error, recarga)
-├── utils/        inventario.js (reglas de negocio) · format.js (colones, fechas) · categorias.js (colores e íconos)
-├── App.jsx → main.jsx → index.html
-```
+- `frontend/`: React, navegación y formularios.
+- `backend/src/`: API, modelos Sequelize y reglas de inventario.
+- `backend/db/ecoobra_mysql.sql`: instalación completa en MySQL con demostración.
+- `backend/db/schema.sql`: estructura sin datos.
+- `backend/db/seed.sql`: datos de demostración, después del esquema.
 
-`services/api.js` funciona como un enchufe: las páginas siempre llaman `api.getMateriales()`, y
-según el `.env` ese enchufe se conecta al back end real o a los datos de prueba. Por eso, cuando
-la API esté lista, no hay que tocar ninguna página.
+## Problemas habituales
+
+- Conexión rechazada a MySQL: revisar servicio, host, puerto y contraseña en `backend/.env`.
+- Se muestra “Datos: db.json”: cambiar `VITE_FUENTE_DATOS=api` y reiniciar el frontend.
+- Error de CORS: usar `http://localhost:5173`, que coincide con `CORS_ORIGIN`; si cambias la dirección, actualizarla en el backend y reiniciarlo.
+- Vite usa otro puerto: liberar 5173 o ajustar `CORS_ORIGIN` al puerto elegido.
+- La compilación se sirve desde otro dominio: configurar `VITE_API_URL` antes de compilar y habilitar ese origen en la API. El servidor web debe redirigir las rutas de React a `index.html`.
+
+La verificación se realizó en Linux. Los pasos con Workbench y CMD se documentan para Windows, pero no se ejecutaron allí. El proyecto mantiene el alcance original de inventario sin autenticación de usuarios.
