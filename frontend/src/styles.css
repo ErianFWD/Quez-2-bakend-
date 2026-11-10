@@ -49,9 +49,9 @@ code { background: var(--neutral-bg); padding: 1px 5px; border-radius: 3px; font
 /* Fija y fuera del flujo: al compactarse no cambia la altura de la página.
    Con position: sticky el cambio de altura movía el scroll y la cabecera
    entraba en un bucle compactar/expandir (temblor). */
-.cabecera { position: fixed; top: 0; left: 0; right: 0; z-index: 40; }
+.cabecera { position: fixed; top: 0; left: 0; right: 0; z-index: 40; transition: transform 0.25s ease; will-change: transform; }
 .app { padding-top: 122px; } /* barra superior (38px) + navegación (84px) */
-.barra-superior { background: var(--verde); color: #fff; font-size: 13px; transition: margin 0.25s; }
+.barra-superior { background: var(--verde); color: #fff; font-size: 13px; transition: opacity 0.2s ease; }
 .barra-superior-contenido { display: flex; justify-content: space-between; align-items: center; height: 38px; gap: 12px; }
 .barra-datos { display: flex; align-items: center; gap: 18px; }
 .barra-datos span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -62,9 +62,12 @@ code { background: var(--neutral-bg); padding: 1px 5px; border-radius: 3px; font
 .modo-chip.api { background: #2f6b1f; }
 
 .navegacion { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
-.navegacion-contenido { display: flex; align-items: center; justify-content: space-between; height: 84px; transition: height 0.25s; }
-.cabecera.compacta .navegacion-contenido { height: 64px; }
-.cabecera.compacta .barra-superior { margin-top: -38px; }
+.navegacion-contenido { display: flex; align-items: center; justify-content: space-between; height: 84px; }
+/* Al bajar, toda la cabecera sube 38px (lo que mide la barra verde) y la barra se desvanece.
+   Se usa transform y opacity en vez de cambiar márgenes o alturas: no recalcula el diseño
+   de la página, así que no tiembla ni deja el texto de la barra cortado a la mitad. */
+.cabecera.compacta { transform: translateY(-38px); }
+.cabecera.compacta .barra-superior { opacity: 0; pointer-events: none; }
 
 .marca { display: flex; align-items: center; gap: 10px; color: var(--texto); }
 .marca:hover { text-decoration: none; }
